@@ -29,11 +29,14 @@ def init_db():
         conn.commit()
         cur.close()
         conn.close()
+        print("Tabla creada exitosamente")
     except Exception as e:
         print(f"Error al inicializar DB: {e}")
 
 @app.route('/')
 def index():
+    # Inicializar base de datos al cargar la página
+    init_db()
     # Generar ID aleatorio para el usuario
     usuario_id = str(uuid.uuid4())
     return render_template('index.html', usuario_id=usuario_id)
@@ -57,20 +60,28 @@ def evaluar():
         if pregunta1 == 'NO' and pregunta2 == 'NO':
             diagnostico = "En este momento su situación no requiere asistencia médica."
         
+        # Si solo pregunta 1 es SI y pregunta 2 es NO
+        elif pregunta1 == 'SI' and pregunta2 == 'NO':
+            diagnostico = "En este momento su situación no requiere asistencia médica."
+        
+        # Si pregunta 1 es NO y pregunta 2 es SI
+        elif pregunta1 == 'NO' and pregunta2 == 'SI':
+            diagnostico = "En este momento su situación no requiere asistencia médica."
+        
         # Regla b: Si pregunta 1 y 2 son SI, desplegar pregunta 3
         elif pregunta1 == 'SI' and pregunta2 == 'SI':
-            mostrar_pregunta3 = True
-            
-            if pregunta3 is not None:
+            if pregunta3 is None:
+                mostrar_pregunta3 = True
+            else:
                 # Regla d: Si pregunta 3 es SI
                 if pregunta3 == 'SI':
                     diagnostico = "La COVID-19 se presenta como una enfermedad aguda, por lo tanto, los síntomas que presenta en este momento podrían deberse a otra causa diferente del nuevo coronavirus."
                 
                 # Regla c: Si pregunta 3 es NO, desplegar pregunta 4
                 elif pregunta3 == 'NO':
-                    mostrar_pregunta4 = True
-                    
-                    if pregunta4 is not None:
+                    if pregunta4 is None:
+                        mostrar_pregunta4 = True
+                    else:
                         # Regla e: Si pregunta 4 es SI
                         if pregunta4 == 'SI':
                             diagnostico = "Sus síntomas parecen indicar gravedad"
@@ -90,6 +101,7 @@ def evaluar():
         })
     
     except Exception as e:
+        print(f"Error en evaluar: {e}")
         return jsonify({'error': str(e)}), 500
 
 def guardar_resultado(usuario_id, diagnostico):
@@ -104,9 +116,10 @@ def guardar_resultado(usuario_id, diagnostico):
         conn.commit()
         cur.close()
         conn.close()
+        print(f"Resultado guardado para usuario {usuario_id}")
     except Exception as e:
         print(f"Error al guardar resultado: {e}")
 
 if __name__ == '__main__':
-    init_db()
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
