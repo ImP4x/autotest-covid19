@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autotest COVID-19</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .user-id {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        
+        .pregunta {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .pregunta.activa {
+            display: block;
+        }
+        
+        .pregunta h3 {
+            color: #444;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .botones {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .btn-si {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-si:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        
+        .btn-no {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-no:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+        
+        .resultado {
+            display: none;
+            padding: 25px;
+            background: #e7f3ff;
+            border-left: 5px solid #2196F3;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .resultado.mostrar {
+            display: block;
+        }
+        
+        .resultado h2 {
+            color: #1976D2;
+            margin-bottom: 10px;
+        }
+        
+        .resultado p {
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .btn-reiniciar {
+            display: none;
+            background: #6c757d;
+            color: white;
+            margin: 20px auto 0;
+            display: block;
+        }
+        
+        .btn-reiniciar:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 Autotest COVID-19</h1>
+        <p class="user-id">ID de Usuario: <strong>{{ usuario_id }}</strong></p>
+        
+        <div id="preguntas">
+            <!-- Pregunta 1 -->
+            <div class="pregunta activa" id="pregunta1">
+                <h3>¿Tuvo usted algún contacto a menos de 2 metros durante un mínimo de 15 minutos o convive/cuida a alguna persona con COVID-19 sin medidas de protección?</h3>
+                <div class="botones">
+                    <button class="btn-si" onclick="responder(1, 'SI')">SÍ</button>
+                    <button class="btn-no" onclick="responder(1, 'NO')">NO</button>
+                </div>
+            </div>
+            
+            <!-- Pregunta 2 -->
+            <div class="pregunta" id="pregunta2">
+                <h3>¿Presenta usted algún síntoma?</h3>
+                <div class="botones">
+                    <button class="btn-si" onclick="responder(2, 'SI')">SÍ</button>
+                    <button class="btn-no" onclick="responder(2, 'NO')">NO</button>
+                </div>
+            </div>
+            
+            <!-- Pregunta 3 -->
+            <div class="pregunta" id="pregunta3">
+                <h3>¿Hace más de 14 días que comenzaron los síntomas?</h3>
+                <div class="botones">
+                    <button class="btn-si" onclick="responder(3, 'SI')">SÍ</button>
+                    <button class="btn-no" onclick="responder(3, 'NO')">NO</button>
+                </div>
+            </div>
+            
+            <!-- Pregunta 4 -->
+            <div class="pregunta" id="pregunta4">
+                <h3>¿Tiene dificultad repentina para respirar o nota falta de aire?</h3>
+                <div class="botones">
+                    <button class="btn-si" onclick="responder(4, 'SI')">SÍ</button>
+                    <button class="btn-no" onclick="responder(4, 'NO')">NO</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="resultado" id="resultado">
+            <h2>Diagnóstico</h2>
+            <p id="texto-diagnostico"></p>
+        </div>
+        
+        <button class="btn-reiniciar" id="btn-reiniciar" onclick="reiniciar()">Realizar otra evaluación</button>
+    </div>
+    
+    <script>
+        const usuarioId = "{{ usuario_id }}";
+        const respuestas = {};
+        
+        function responder(numPregunta, respuesta) {
+            respuestas[`pregunta${numPregunta}`] = respuesta;
+            
+            // Ocultar pregunta actual
+            document.getElementById(`pregunta${numPregunta}`).classList.remove('activa');
+            
+            // Si es pregunta 1, mostrar pregunta 2
+            if (numPregunta === 1) {
+                document.getElementById('pregunta2').classList.add('activa');
+            }
+            // Si es pregunta 2, evaluar
+            else if (numPregunta === 2) {
+                evaluarRespuestas();
+            }
+            // Si es pregunta 3 o 4, evaluar
+            else {
+                evaluarRespuestas();
+            }
+        }
+        
+        async function evaluarRespuestas() {
+            try {
+                const response = await fetch('/evaluar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuarioId,
+                        ...respuestas
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.mostrar_pregunta3) {
+                    document.getElementById('pregunta3').classList.add('activa');
+                } else if (data.mostrar_pregunta4) {
+                    document.getElementById('pregunta4').classList.add('activa');
+                } else if (data.diagnostico) {
+                    mostrarDiagnostico(data.diagnostico);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Ocurrió un error al procesar las respuestas');
+            }
+        }
+        
+        function mostrarDiagnostico(diagnostico) {
+            document.getElementById('texto-diagnostico').textContent = diagnostico;
+            document.getElementById('resultado').classList.add('mostrar');
+            document.getElementById('btn-reiniciar').style.display = 'block';
+        }
+        
+        function reiniciar() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
